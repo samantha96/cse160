@@ -1,0 +1,476 @@
+---
+title: ' Creating an R Shiny App'
+output: html_notebook
+Date: 04/05/2023
+---
+
+In this lab, we'll create the Shiny app. This lab will guide you write a shiny application, create interactive plots, publish the shiny application on RStudio's shiny server, then you will be able to share the application link. This link contains the the shiny app demo we want you create during this lab, and you could publish it on shiny server. <https://xuehanchen.shinyapps.io/shinyapp/>
+
+Shiny is an R package that allows you to easily create rich, interactive web apps. Shiny allows you to take your work in R and expose it via a web browser so that anyone can use it.
+
+# 1. Basic "Shiny" structure
+
+```{r}
+#install several packages
+library(shiny)
+library(ggplot2)
+library(dplyr)
+```
+
+There are several ways to create a Shiny app.
+
+-   The simplest is to create a new directory for your app, and put a single file called shinyApp.R in it.
+
+-   Or you could split your code into three files for better organization: ui.R, server.R, shinyApp.R.
+
+Here we put it into single chunk of the notebook like a single shinyApp.R file, so you could directly run your code in this notebook.
+
+Shiny applications are divided into two parts: the User Interface (UI) and the Server.
+
+-   The UI is responsible for the app presentation, while the server is responsible for the app logic.
+
+    -   The UI is responsible for the app presentation. It's typically defined using the **`fluidPage()`** or **`fixedPage()`** functions from the **`shiny`** package, along with various UI elements such as **`plotOutput()`**, **`textInput()`**, **`selectInput()`**, and so on. These elements are arranged using layout functions such as **`fluidRow()`**, **`column()`**, **`sidebarPanel()`**, and others.
+
+    -   The server, on the other hand, contains the app's logic and data processing. It defines reactive expressions using the **`reactive()`** or **`observe()`** functions that update based on user input or other reactive values. The server also contains the code that generates the output displayed in the UI, using functions such as **`renderPlot()`**, **`renderTable()`**, or **`renderUI()`**.
+
+The UI and server work together to create an interactive Shiny application that updates in real-time based on user input and reactive values. Check more details on <https://shiny.rstudio.com/tutorial/>
+
+-   Run the following basic shiny code, open the brower, then you should see an empty web application.
+
+-   Notice that once you close the website, you might see the error returns like: Listening on <http://>...... You could ignore this error.
+
+```{r}
+ui <- fluidPage(
+  #ui design goes here
+)
+server <- function(input, output) {
+  # server logic goes here
+}
+#Previewing the application. 
+shinyApp(ui = ui, server = server)
+```
+
+# 2. Basic UI design:
+
+Now, let's define the ui function. There are many approaches to allow the user to choose from a prespecified set of options: e.g. selectInput() and radioButtons().
+
+-   Run the following example and see the ui presentation.
+-   Notice that for UI function, it only shows the app presentation, there is no data processing defined here. The UI provides the user with a way to interact with the app, while the Server processes the user's input and generates output that is displayed in the UI. We will talk about it later on.
+
+```{r}
+animals <- c("dog", "cat", "mouse", "bird", "other", "I hate animals")
+
+ui <- fluidPage(
+  selectInput("animal", "What's your favourite state?", state.name),
+  radioButtons("animal", "What's your favourite animal?", animals)
+)
+ui
+```
+
+There's no way to select multiple values with radio buttons, but there's an alternative that's conceptually similar: checkboxGroupInput() or selectizeInput().
+
+-   Try to write ui function for the question: "What animals do you like?" using checkboxGroupInput() or selectizeInput().
+
+```{r}
+#code start here:
+
+#code end here
+```
+
+# 3. Create the ui and server function for plot.
+
+Now let's create shiny app for the plot!
+
+You can display any type of R graphic (base, ggplot2, or otherwise) with plotOutput() and renderPlot().
+
+-   Explore the input and output argument in server funtion. The input argument represents the user's inputs (e.g. form inputs, buttons clicked, etc.), and the output argument represents the outputs (e.g. plots, tables, etc.) that will be displayed to the user.
+
+-   Outputs in the UI create placeholders that are later filled by the server function. Like inputs, outputs take a unique ID as their first argument: if your UI specification creates an output with ID **`"plot"`**, like **`plotOutput("plot")`**, you'll access it in the server function with **`output$plot`**.
+
+-   In R, **`{}`** is used to create a block of code that can contain one or more expressions or statements. In the context of a function, the **`{}`** block defines the function body, which contains the code that is executed when the function is called.
+
+-   Try to run the following example:
+
+```{r}
+ui <- fluidPage(
+  plotOutput("plot"),
+)
+
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    plot(mtcars$wt, mtcars$mpg)
+  }, res = 96)
+}
+shinyApp(ui = ui, server = server)
+```
+
+After running the example, Let's start by building a simple shiny plot!
+
+We try to explore the topic "Titanic: What Helped You Survive?". The goal is to ask several questions and using plot to explore it.
+
+-   Question - What was the survival rate by gender?
+
+-   We can create a grouped barchart.
+
+    Here is an example plot:
+
+![](https://github.com/samantha96/cse160/blob/main/e1.png?raw=true)
+
+First we load data and do simple clean.
+
+```{r}
+# load titanic dataset
+library(titanic)
+titanic <- titanic_train
+titanic <- na.omit(titanic)
+titanic$Pclass <- as.factor(titanic$Pclass)
+titanic$Survived <- as.factor(titanic$Survived)
+titanic$Sex <- as.factor(titanic$Sex)
+
+```
+
+-   You could try to create the bar chart first, then put it into ui and server function.
+
+    -   Using **`geom_bar()`** in **`renderPlot() block`**. You can specify **`position = "dodge"`** to generate a grouped bar chart.
+
+```{r}
+
+ui <- fluidPage(
+    #code start here:
+    
+    #code end here
+)
+
+server <- function(input, output) {
+  #code start here:
+
+  #code end here
+}
+shinyApp(ui = ui, server = server)
+```
+
+# 4. Add selection input and process selected data
+
+Now, let's add selection input for interactive plot in shiny. You could choose the selection function you like from step 2. The goal is to create selection choices for survived and sex variables for the plot.
+
+-   **`CheckboxGroupInput()`**:For survival selection, the choices for the input are "survived" and "died", which correspond to the numeric values of 1 and 0, respectively. These choices are specified using the **`choices`** argument.The **`selected`** argument is used to set the default selections for the checkboxes. When the user interacts with the input element, the selected choices are stored in the **`input$survival`** variable in the Shiny app server.
+
+-   The **`subset()`** function takes the data as its first argument, followed by the conditions to filter the data. Uses the **`subset()`** function to filter the **`titanic`** dataset based on two conditions: **`sex == input$sex`** and **`survived == input$survival`**. It checks if the gender of each passenger in the titanic dataset is contained in the **`input$sex`** vector and if the survival status of each passenger is contained in the **`input$survival`** vector. we could write the condition**`(Sex == input$sex[1]| Sex == input$sex[2]).`** It is checking if the value in the **`Sex`** column of the **`titanic`** data frame is equal to the first or second element in the **`input$sex`** vector. By using **`[1]`** after **`input$sex`**, we are specifying that we only want to compare with the first element in the vector.
+
+Here is an example: ![](https://github.com/samantha96/cse160/blob/main/e2.png?raw=true)
+
+Try to run the following shiny app example:
+
+```{r}
+ui <- fluidPage(
+    #Add two checkboxGroupInput() elements, one for the survival status and one for the gender of the passengers. Set their initial selections using the selected argument.
+    checkboxGroupInput("survival", "Did the passenger survive?",  choices = c("survived" = 1, "died" = 0), selected = c(1,0)),
+    checkboxGroupInput("sex", "What is the gender of the passenger?", choices = c("male", "female"), selected = c("male", "female")),
+    #Add a plotOutput() element to display the plot.
+    plotOutput("plot"),
+
+)
+
+server <- function(input, output) {
+ output$plot <- renderPlot({
+   
+    #In the renderPlot() function, filter the data based on the selected gender and survival status using subset().
+    filtered_data <- subset(titanic, 
+                            (Sex == input$sex[1]| Sex ==input$sex[2]) & 
+                              (Survived == input$survival[1]|Survived == input$survival[2]))
+    
+    
+    #Create barchart using the filtered data.
+    ggplot(filtered_data, aes(x = Sex, fill = Survived)) + 
+      theme_bw() +
+      geom_bar(position = "dodge") +
+      geom_text(aes(label = ..count..), stat = "count", position = position_dodge(width = 0.9), vjust = -0.5, size = 3) +
+      #Add labels to the plot using labs() for the y-axis and title.
+      labs(y = "Passenger Count",
+           title = "Passenger Count by Sex")
+    
+    
+    
+    }, res = 96)
+}
+
+#Finally, run the Shiny app using shinyApp().
+shinyApp(ui = ui, server = server)
+```
+
+# 5. Build our shiny app.
+
+# Question - What is the number of survival passengers by age when segmented by gender and class of ticket?
+
+-   A related visualization to the histogram is a density plot. Think of a density plot as a smoothed version of the histogram.
+
+-   <div>
+
+    1.  UI: Create selection input for pclass, sex, survived, and sliderInput() for age.
+
+    </div>
+
+-   <div>
+
+    2.  Server: We can use facet_wrap(Sex \~ Pclass) + geom_density(alpha = 0.5) to allow for visual drill-down via density plots. Then we need to think how to get filtered input data based on how user selection.
+
+        -   For better visualization, we need to create a new data frame **`titanic_complete`** with all possible combinations of Pclass and Sex. The reason for creating a new data frame with all possible combinations of Pclass and Sex is to ensure that the plot always displays all combinations of Pclass and Sex, even if there are no observations in the original dataset for a particular combination. This is important for the visualization to accurately reflect the distribution of the data and avoid misleading interpretations.
+
+        -   Uses the **`subset()`** function to filter the **`titanic_complete`** dataset. In this case, **`pclass`**, **`sex`**, **`age`**, and **`survived`** variables are filtered using the **`==`** operator to match the user-selected values. The **`age`** variable is filtered based on a range of values using the **`>=`** and **`<=`** operators. **`input$age[1]`** and **`input$age[2]`** are used to extract the minimum and maximum age values selected by the user using the **`sliderInput()`** function.
+
+        -   **`We put the sebset() inside the Reactive function in this case. Reactive()`** function creates a reactive expression that filters the data in **`titanic_complete`** based on the user input values for **`pclass`**, **`sex`**, **`age`** and **`survived`**. The reactive expression returns the filtered data that can be used to render the plot. Whenever there is a change in any of the input values, the reactive expression will re-execute and the plot will be updated accordingly.
+
+    </div>
+
+-   Here is an example: <https://xuehanchen.shinyapps.io/shinyapp/>![](https://github.com/samantha96/cse160/blob/main/e3.png?raw=true)
+
+```{r}
+ui <- fluidPage(
+  #use fluidRow() to control the plot layout
+  fluidRow(
+    column(width = 4,
+           #selection control part
+            #code start here:
+               #Add three selection elements, one for the survival status, one for pclass and one for the gender of the passengers. Set their initial selections using the selected argument.
+               #Add one slider for selecting age range.
+           
+           
+            #code end here
+    ),
+    column(width = 8,
+           #display plot part
+            #code start here:
+           
+            #code end here:
+    )
+  )
+)
+
+
+server <- function(input, output) {
+  # Create a new data frame with all possible combinations of Pclass and Sex
+    all_combinations <- expand.grid(Pclass = c("1", "2", "3"), Sex = c("female", "male"))
+
+    # Join the new data frame with the original titanic dataset
+    titanic_complete <- merge(all_combinations, titanic, by = c("Pclass", "Sex"), all.x = TRUE)
+
+    # Convert Pclass and Survived to factors
+    titanic_complete$Pclass <- as.factor(titanic_complete$Pclass)
+    titanic_complete$Survived <- as.factor(titanic_complete$Survived)
+  
+
+
+titanic_filtered <- reactive({
+  #code start here:
+  #use subset() and take titanic_complete as data
+  #inside subset()， write conditions for pclass, sex, age, and survived variables to match user selected values.
+  
+  
+  #code end here
+  })
+
+
+  output$plot <- renderPlot({
+    
+    #code start here:
+    #creates a ggplot object using the titanic_filtered() as data input: , setting the x-axis to the Age column and the fill to the Survived column.
+    #use facet_wrap(), geom_density()
+
+    
+    
+    
+    
+    #code end here
+    
+    
+  }, res = 96)
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+Now, Let's explore the interactive plot with mouse events using shiny package!
+
+# 6. Interactivity of shiny plot: mouse events
+
+One of the coolest things about **`plotOutput()`** is that as well as being an output that displays plots, it can also be an input that responds to pointer events. That allows you to create interactive graphics where the user interacts directly with the data on the plot.
+
+A plot can respond to four different mouse events: click, dblclick (double click), hover (when the mouse stays in the same place for a little while), and brush (a rectangular selection tool).
+
+Try to use **`plotOutput("plot", click = "plot_click")`** . This creates an **`input$plot_click`** that you can use to handle mouse clicks on the plot.
+
+Now, Let's explore the interactive plot with mouse events using shiny package!
+
+-   Here is an example using mtcars dataset. Try it out and we will use this pointer events input later for citibike analysis
+
+```{r}
+ui <- fluidPage(
+  #code start here:
+  plotOutput("plot", click = "plot_click"),
+  verbatimTextOutput("info")
+)
+
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    plot(mtcars$wt, mtcars$mpg)
+  }, res = 96)
+
+  output$info <- renderPrint({
+    req(input$plot_click)
+    x <- round(input$plot_click$x, 2)
+    y <- round(input$plot_click$y, 2)
+    cat("[", x, ", ", y, "]", sep = "")
+  })
+}
+shinyApp(ui = ui, server = server)
+```
+
+Let's start to create the interactive plot for citibike dataset using shiny package.
+
+# 7. Create interactive line graph with mouse event
+
+Question: Is there a seasonality? Assumption: there are fewer trips during winters and more trips during summers.
+
+We want to displays a line graph of the count of bike rentals to let you observe whether there is a seasonality for the count of bike rentals.
+
+-   For better observation, we need to aggregate data by date and show the sum of the bike rental counts.
+
+```{r}
+library(lubridate)
+#load the dataset
+dataset <- read.csv('https://raw.githubusercontent.com/samantha96/cse160/main/train.csv')
+dataset$date <- date(dataset$datetime)
+# Check the result
+head(dataset)
+```
+
+-   Create interactivity by appling the click or hover like the example showed before.
+
+-   Show the corrsponding bike rental information for that data you click or hover. Here is an example: ![](https://github.com/samantha96/cse160/blob/main/example5.png?raw=true)
+
+    Try to run the following code and explore the mouse event for shiny app. No need to write the code.
+
+```{r}
+
+# Aggregate data by date to store the value
+
+date_data <- summarise(group_by(dataset, date), total_count = sum(count))
+
+# Define the UI
+ui <- fluidPage(
+  titlePanel("Explore Bike Rentals seasonality"),
+  
+  mainPanel(
+    plotOutput("plot", hover = hoverOpts("plot_hover")),
+    verbatimTextOutput("info")
+  )
+)
+
+# Define the server
+server <- function(input, output) {
+  
+  # Create the plot:line graph of the count of bike rentals by date
+    output$plot <- renderPlot({
+    ggplot(date_data, aes(x = date, y = total_count)) +
+      geom_line() +
+      labs(title = "Explore Bike Rentals seasonality",
+           x = "Date",
+           y = "Count")
+  })
+
+  
+  # Create the hover or click information
+  
+  output$info <- renderPrint({
+    if (is.null(input$plot_hover)) {
+      return()
+    }
+    
+    x <- as.numeric(input$plot_hover$x)
+    y <- as.numeric(input$plot_hover$y)
+    
+    # Find the closest point to the hover location
+    closest_point <- which.min(abs(as.numeric(date_data$date) - x))
+    
+    paste(
+      #show information of click point about its date and count
+      "Date:", date_data$date[closest_point],
+      "Count:", date_data$total_count[closest_point]
+    )
+  })
+  
+}
+
+# Run the app
+shinyApp(ui, server)
+
+
+```
+
+# 8. Organize the R. files
+
+For this notebook, we put them into one chunk to run the shiny code.
+
+If we want to keep your code organized and easier to maintain, we could separate the UI and server functions into separate files..
+
+we set up three files: ui.R to define the app presentation, server.R to define the app logic, and shinyApp.R to run the former two.
+
+-   Remember to save these three R scripts in the same directory as the app.R file.
+
+-   Define the ui and server function in ui.R and server.R seperately.
+
+1.  ui.R
+
+```{r}
+ui <- fluidPage(
+  # UI elements go here
+)
+# return the UI object
+ui
+```
+
+2.  server.R
+
+```{r}
+server <- function(input, output) {
+  # server logic goes here
+}
+
+# return the server object
+server
+```
+
+3.  shinyApp.R
+
+    source the ui.R and server.R files and then call the shinyApp function with the ui and server objects.
+
+```{r}
+# source the UI and server files
+source("ui.R")
+source("server.R")
+
+# create the Shiny app
+shinyApp(ui = ui, server = server)
+```
+
+Combine these three R sricpts and all other materials(e.g.image) into one single folder, which the folder path will be the path to publish your shiny app.
+
+# 9. Publish the shiny app.
+
+Now, Let's publish our shiny app. Create free account on shinyapp.io. Install the rsconnect package, authorize account and deploy your app! <https://www.shinyapps.io/admin/#/dashboard>
+
+```{r}
+library(rsconnect)
+
+#The rsconnect package must be authorized to your account using a token and secret. Paste it into your R console to authorize your account.
+#rsconnect::setAccountInfo(name='your name',
+			  #token='your token',
+			  #secret='<SECRET>')
+
+#Once the rsconnect package has been configured, you're ready to deploy your first application. 
+#rsconnect::deployApp('/Users/samanthachen/Desktop/shinyapp')
+```
+
+Once you have published your app, you still can continue modify your app and republish it.
+
+-   For this lab, submit your notebook and your published link for step 5.
